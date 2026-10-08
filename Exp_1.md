@@ -2,8 +2,6 @@
 
 ER model for an Indian e-commerce platform (in the style of Flipkart or Amazon.in) with the entities **Customer, Product, Order, OrderItem, Seller, Category, Payment, Delivery and Address**.
 
-> The diagrams below are written in **Mermaid**, which GitHub renders automatically inside README files. No images or plugins are needed.
-
 ---
 
 ## 1. Notation Used
