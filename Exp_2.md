@@ -388,3 +388,354 @@ CREATE TABLE delivery (
 SHOW TABLES;
 ```
 
+---
+
+## Step 4: Insert Sample Data
+
+```sql
+INSERT INTO customer (customer_id, first_name, middle_name, last_name, email, date_of_birth, registered_on) VALUES
+('C001', 'Aarav',  NULL,     'Sharma', 'aarav.sharma@gmail.com', '1998-04-12', '2024-01-10'),
+('C002', 'Priya',  'Lakshmi','Iyer',   'priya.iyer@yahoo.in',    '2000-09-25', '2024-03-05'),
+('C003', 'Rohan',  NULL,     'Das',    'rohan.das@outlook.com',  '1995-12-01', '2025-02-18'),
+('C004', 'Sneha',  NULL,     'Patel',  'sneha.patel@gmail.com',  '2001-06-30', '2025-07-22');
+
+INSERT INTO customer_phone VALUES
+('C001', '9876543210'), ('C001', '8765432109'),
+('C002', '9123456780'),
+('C003', '7012345678'),
+('C004', '6301234567');
+
+INSERT INTO address VALUES
+('C001', 1, '12B',  'MG Road',          'Near Metro Station', 'Bengaluru', 'Karnataka',   '560001', 'Home'),
+('C001', 2, '4th Floor, Tower A', 'Outer Ring Road', 'Embassy Tech Village', 'Bengaluru', 'Karnataka', '560103', 'Work'),
+('C002', 1, '7',    'T Nagar Main Road', NULL,                'Chennai',   'Tamil Nadu',  '600017', 'Home'),
+('C003', 1, '22/5', 'Salt Lake Sector V', 'Opp. City Centre', 'Kolkata',   'West Bengal', '700091', 'Home'),
+('C004', 1, '101',  'CG Road',          'Navrangpura',        'Ahmedabad', 'Gujarat',     '380009', 'Home');
+
+INSERT INTO seller VALUES
+('S001', 'TechWorld Electronics', '29AABCT1234F1Z5', 'AABCT1234F', 'Vikram', 'Rao',   'sales@techworld.in',   'Bengaluru', 'Karnataka',   '560034'),
+('S002', 'Desi Threads',          '24AAFCD5678K1Z2', 'AAFCD5678K', 'Meera',  'Shah',  'hello@desithreads.in', 'Surat',     'Gujarat',     '395003'),
+('S003', 'Book Bazaar',           '07AAGCB9012M1Z8', 'AAGCB9012M', 'Anil',   'Gupta', 'orders@bookbazaar.in', 'New Delhi', 'Delhi',       '110002'),
+('S004', 'Kisan Fresh Foods',     '27AAHCK3456P1Z1', 'AAHCK3456P', 'Suresh', 'Patil', 'care@kisanfresh.in',   'Pune',      'Maharashtra', '411001');
+
+INSERT INTO seller_phone VALUES
+('S001', '8045671234'), ('S001', '9845012345'),
+('S002', '9909012345'),
+('S003', '9811098110'),
+('S004', '9822098220');
+
+INSERT INTO category VALUES
+('CAT01', 'Electronics',       'Electronic gadgets',        NULL),
+('CAT02', 'Mobiles',           'Smartphones and feature phones', 'CAT01'),
+('CAT03', 'Fashion',           'Clothing and accessories',  NULL),
+('CAT04', 'Ethnic Wear',       'Kurtas, sarees, sherwanis', 'CAT03'),
+('CAT05', 'Books',             'Printed books',             NULL),
+('CAT06', 'Grocery',           'Daily essentials',          NULL),
+('CAT07', 'Home Decor',        'Furniture and decor',       NULL);
+
+INSERT INTO product VALUES
+('P001', 'S001', 'CAT02', 'Redmi Note 13 5G (8GB/256GB)', 'Xiaomi',   20999.00, 17999.00, '8517', 18, 50,  'Electronics'),
+('P002', 'S001', 'CAT01', 'boAt Airdopes 141',            'boAt',      4490.00,  1299.00, '8518', 18, 200, 'Electronics'),
+('P003', 'S002', 'CAT04', 'Cotton Straight Kurta',        'Fabindia',  1999.00,  1499.00, '6211', 5,  120, 'Clothing'),
+('P004', 'S003', 'CAT05', 'Wings of Fire',                'Universities Press', 399.00, 299.00, '4901', 0, 80, 'Book'),
+('P005', 'S004', 'CAT06', 'Basmati Rice 5kg',             'India Gate', 899.00,   749.00, '1006', 5,  300, 'Grocery'),
+('P006', 'S004', 'CAT07', 'Brass Diya Set (Pack of 4)',   'Handicraft', 599.00,   449.00, '7419', 12, 60,  'Other');
+
+INSERT INTO product_image VALUES
+('P001', 'https://cdn.example.in/p001_front.jpg'),
+('P001', 'https://cdn.example.in/p001_back.jpg'),
+('P003', 'https://cdn.example.in/p003.jpg'),
+('P004', 'https://cdn.example.in/p004.jpg');
+
+INSERT INTO electronics VALUES
+('P001', 'RN13-5G-256', 12, 'R-41234567'),
+('P002', 'AD141-BLK',   12, 'R-41987654');
+INSERT INTO clothing VALUES ('P003', 'L', 'Cotton', 'Men');
+INSERT INTO book     VALUES ('P004', '9788173711466', 'A. P. J. Abdul Kalam', 'Universities Press', 'English');
+INSERT INTO grocery  VALUES ('P005', '10014011001234', '2027-06-30', TRUE);
+-- P006 (Brass Diya Set) belongs to no subclass -> partial specialization
+
+INSERT INTO orders VALUES
+('ORD1001', 'C001', 'C001', 1, '2026-09-01 10:15:00', 'Delivered'),
+('ORD1002', 'C002', 'C002', 1, '2026-09-05 18:40:00', 'Shipped'),
+('ORD1003', 'C001', 'C001', 2, '2026-09-10 09:05:00', 'Placed'),
+('ORD1004', 'C003', 'C003', 1, '2026-09-12 21:30:00', 'Delivered');
+
+INSERT INTO order_item VALUES
+('ORD1001', 1, 'P001', 1, 17999.00, 2745.61),
+('ORD1001', 2, 'P002', 2,  1299.00,  396.31),
+('ORD1002', 1, 'P003', 2,  1499.00,  142.76),
+('ORD1003', 1, 'P004', 3,   299.00,    0.00),
+('ORD1003', 2, 'P005', 1,   749.00,   35.67),
+('ORD1004', 1, 'P006', 2,   449.00,   96.21);
+
+INSERT INTO payment VALUES
+('PAY5001', 'ORD1001', 20597.00, 'UPI',        'UTR426101234567', 'Success', '2026-09-01 10:16:00'),
+('PAY5002', 'ORD1002',  2998.00, 'Card',       'RZP_KJ8H2L9P0Q',  'Success', '2026-09-05 18:41:00'),
+('PAY5003', 'ORD1003',  1646.00, 'COD',        NULL,              'Pending', NULL),
+('PAY5004', 'ORD1004',   898.00, 'UPI',        'UTR426109876543', 'Failed',  '2026-09-12 21:31:00'),
+('PAY5005', 'ORD1004',   898.00, 'NetBanking', 'NB20260912ICIC01','Success', '2026-09-12 21:35:00');
+
+INSERT INTO delivery VALUES
+('ORD1001', 1, 'Delhivery',  'DLV1234567890', '2026-09-02', '2026-09-05', '2026-09-04', 'Delivered'),
+('ORD1001', 2, 'Ekart',      'EKT9876543210', '2026-09-02', '2026-09-06', '2026-09-06', 'Delivered'),
+('ORD1002', 1, 'Blue Dart',  'BD55667788',    '2026-09-06', '2026-09-09', NULL,         'In Transit'),
+('ORD1004', 1, 'India Post', 'EE123456789IN', '2026-09-13', '2026-09-18', '2026-09-17', 'Delivered');
+
+-- Row count of every table
+SELECT 'customer' AS table_name, COUNT(*) AS row_count FROM customer
+UNION ALL SELECT 'customer_phone', COUNT(*) FROM customer_phone
+UNION ALL SELECT 'address',        COUNT(*) FROM address
+UNION ALL SELECT 'seller',         COUNT(*) FROM seller
+UNION ALL SELECT 'seller_phone',   COUNT(*) FROM seller_phone
+UNION ALL SELECT 'category',       COUNT(*) FROM category
+UNION ALL SELECT 'product',        COUNT(*) FROM product
+UNION ALL SELECT 'product_image',  COUNT(*) FROM product_image
+UNION ALL SELECT 'electronics',    COUNT(*) FROM electronics
+UNION ALL SELECT 'clothing',       COUNT(*) FROM clothing
+UNION ALL SELECT 'book',           COUNT(*) FROM book
+UNION ALL SELECT 'grocery',        COUNT(*) FROM grocery
+UNION ALL SELECT 'orders',         COUNT(*) FROM orders
+UNION ALL SELECT 'order_item',     COUNT(*) FROM order_item
+UNION ALL SELECT 'payment',        COUNT(*) FROM payment
+UNION ALL SELECT 'delivery',       COUNT(*) FROM delivery;
+```
+
+**Output:**
+
+```
++----------------+-----------+
+| table_name     | row_count |
++----------------+-----------+
+| customer       |         4 |
+| customer_phone |         5 |
+| address        |         5 |
+| seller         |         4 |
+| seller_phone   |         5 |
+| category       |         7 |
+| product        |         6 |
+| product_image  |         4 |
+| electronics    |         2 |
+| clothing       |         1 |
+| book           |         1 |
+| grocery        |         1 |
+| orders         |         4 |
+| order_item     |         6 |
+| payment        |         5 |
+| delivery       |         4 |
++----------------+-----------+
+```
+
+---
+
+## Step 5: Demonstrating Referential Integrity and Constraint Violations
+
+Each statement below is **expected to fail**. The error shows the constraint doing its job.
+
+| # | Statement | Constraint Violated | Expected Error |
+|---|---|---|---|
+| C1 | `INSERT INTO orders (order_id, customer_id) VALUES ('ORD9999', 'C999');` | FK: customer `C999` does not exist | **ERROR 1452** Cannot add or update a child row: a foreign key constraint fails (`fk_orders_customer`) |
+| C2 | `INSERT INTO order_item VALUES ('ORD1001', 3, 'P999', 1, 100.00, 0);` | FK: product `P999` does not exist | **ERROR 1452** … (`fk_oitem_product`) |
+| C3 | `DELETE FROM product WHERE product_id = 'P001';` | `ON DELETE RESTRICT`: P001 is in an order | **ERROR 1451** Cannot delete or update a parent row: a foreign key constraint fails (`fk_oitem_product`) |
+| C4 | `DELETE FROM customer WHERE customer_id = 'C001';` | `ON DELETE RESTRICT`: C001 has orders | **ERROR 1451** … (`fk_orders_customer`) |
+| C5 | `UPDATE product SET seller_id = 'S999' WHERE product_id = 'P002';` | FK: seller `S999` does not exist | **ERROR 1452** … (`fk_product_seller`) |
+| C6 | `INSERT INTO customer (customer_id, first_name, last_name, email) VALUES ('C005','Kabir','Singh',NULL);` | NOT NULL | **ERROR 1048** Column 'email' cannot be null |
+| C7 | `INSERT INTO customer (…) VALUES ('C005','Kabir','Singh','aarav.sharma@gmail.com');` | UNIQUE on `email` | **ERROR 1062** Duplicate entry 'aarav.sharma@gmail.com' for key 'customer.email' |
+| C8 | `INSERT INTO address VALUES ('C002', 1, …);` | PRIMARY KEY of the weak entity | **ERROR 1062** Duplicate entry 'C002-1' for key 'address.PRIMARY' |
+| C9 | `INSERT INTO address VALUES ('C004', 2, …, '38005', 'Work');` | CHECK: PIN code must be 6 digits | **ERROR 3819** Check constraint 'chk_pincode' is violated. |
+| C10 | `INSERT INTO delivery VALUES ('ORD7777', 1, …);` | Weak entity without an owner | **ERROR 1452** … (`fk_delivery_order`) |
+| C11 | `DROP TABLE seller;` | Table is still referenced | **ERROR 3730** Cannot drop table 'seller' referenced by a foreign key constraint 'fk_product_seller' on table 'product'. |
+
+**Output (MySQL 8.0 command line):**
+
+```
+mysql> INSERT INTO orders (order_id, customer_id) VALUES ('ORD9999', 'C999');
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`ecommerce_db`.`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`customer_id`) ...)
+
+mysql> INSERT INTO order_item VALUES ('ORD1001', 3, 'P999', 1, 100.00, 0);
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`ecommerce_db`.`order_item`, CONSTRAINT `fk_oitem_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`product_id`) ...)
+
+mysql> DELETE FROM product WHERE product_id = 'P001';
+ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails (`ecommerce_db`.`order_item`, CONSTRAINT `fk_oitem_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`product_id`) ...)
+
+mysql> DELETE FROM customer WHERE customer_id = 'C001';
+ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails (`ecommerce_db`.`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`customer_id`) ...)
+
+mysql> UPDATE product SET seller_id = 'S999' WHERE product_id = 'P002';
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`ecommerce_db`.`product`, CONSTRAINT `fk_product_seller` FOREIGN KEY (`seller_id`) REFERENCES `seller` (`seller_id`) ...)
+
+mysql> INSERT INTO customer (customer_id, first_name, last_name, email) VALUES ('C005', 'Kabir', 'Singh', NULL);
+ERROR 1048 (23000): Column 'email' cannot be null
+
+mysql> INSERT INTO customer (customer_id, first_name, last_name, email) VALUES ('C005', 'Kabir', 'Singh', 'aarav.sharma@gmail.com');
+ERROR 1062 (23000): Duplicate entry 'aarav.sharma@gmail.com' for key 'customer.email'
+
+mysql> INSERT INTO address VALUES ('C002', 1, '9', 'Anna Salai', NULL, 'Chennai', 'Tamil Nadu', '600002', 'Work');
+ERROR 1062 (23000): Duplicate entry 'C002-1' for key 'address.PRIMARY'
+
+mysql> INSERT INTO address VALUES ('C004', 2, '5', 'SG Highway', NULL, 'Ahmedabad', 'Gujarat', '38005', 'Work');
+ERROR 3819 (HY000): Check constraint 'chk_pincode' is violated.
+
+mysql> INSERT INTO delivery VALUES ('ORD7777', 1, 'Delhivery', 'DLV0000000001', NULL, NULL, NULL, 'Pending');
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`ecommerce_db`.`delivery`, CONSTRAINT `fk_delivery_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ...)
+
+mysql> DROP TABLE seller;
+ERROR 3730 (HY000): Cannot drop table 'seller' referenced by a foreign key constraint 'fk_product_seller' on table 'product'.
+```
+
+> Exact wording varies slightly between MySQL versions (and MariaDB), but the error numbers 1452, 1451, 1048 and 1062 are the same.
+
+---
+
+## Step 6: Demonstrating ON DELETE CASCADE
+
+```sql
+-- D1. Deleting an ORDER cascades to ORDER_ITEM, PAYMENT and DELIVERY
+SELECT 'BEFORE' AS stage,
+       (SELECT COUNT(*) FROM order_item WHERE order_id = 'ORD1001') AS items,
+       (SELECT COUNT(*) FROM payment    WHERE order_id = 'ORD1001') AS payments,
+       (SELECT COUNT(*) FROM delivery   WHERE order_id = 'ORD1001') AS deliveries;
+
+DELETE FROM orders WHERE order_id = 'ORD1001';
+
+SELECT 'AFTER' AS stage,
+       (SELECT COUNT(*) FROM order_item WHERE order_id = 'ORD1001') AS items,
+       (SELECT COUNT(*) FROM payment    WHERE order_id = 'ORD1001') AS payments,
+       (SELECT COUNT(*) FROM delivery   WHERE order_id = 'ORD1001') AS deliveries;
+
+-- D2. Deleting a CUSTOMER with no orders cascades to phones and addresses
+DELETE FROM customer WHERE customer_id = 'C004';
+SELECT * FROM customer_phone WHERE customer_id = 'C004';   -- Empty set
+SELECT * FROM address        WHERE customer_id = 'C004';   -- Empty set
+
+-- D3. ON UPDATE CASCADE: renaming a seller ID updates all its products
+UPDATE seller SET seller_id = 'S010' WHERE seller_id = 'S003';
+SELECT product_id, seller_id FROM product WHERE product_id = 'P004';
+SELECT * FROM seller_phone WHERE seller_id = 'S010';
+```
+
+**Output:**
+
+```
++--------+-------+----------+------------+
+| stage  | items | payments | deliveries |
++--------+-------+----------+------------+
+| BEFORE |     2 |        1 |          2 |
++--------+-------+----------+------------+
++-------+-------+----------+------------+
+| stage | items | payments | deliveries |
++-------+-------+----------+------------+
+| AFTER |     0 |        0 |          0 |
++-------+-------+----------+------------+
+Empty set   -- customer_phone of C004
+Empty set   -- address of C004
++------------+-----------+
+| product_id | seller_id |
++------------+-----------+
+| P004       | S010      |
++------------+-----------+
++-----------+--------------+
+| seller_id | phone_number |
++-----------+--------------+
+| S010      | 9811098110   |
++-----------+--------------+
+```
+
+**Observation:**
+
+- Deleting order `ORD1001` automatically removed its **2 order items, 1 payment and 2 deliveries**. These are weak or dependent entities.
+- Deleting customer `C004`, who had no orders, removed their phone numbers and addresses.
+- `ON UPDATE CASCADE` carried the new seller ID `S010` into `product` and `seller_phone`.
+
+---
+
+## Step 7: Demonstrating ON DELETE SET NULL
+
+```sql
+-- E1. Deleting parent category 'Fashion' -> sub-category parent becomes NULL
+DELETE FROM category WHERE category_id = 'CAT03';
+SELECT category_id, category_name, parent_category_id FROM category WHERE category_id = 'CAT04';
+
+-- E2. Deleting category 'Home Decor' -> its product's category_id becomes NULL
+DELETE FROM category WHERE category_id = 'CAT07';
+SELECT product_id, product_name, category_id FROM product WHERE product_id = 'P006';
+
+-- E3. Deleting a saved address -> order is kept, ship-to address becomes NULL
+DELETE FROM address WHERE customer_id = 'C001' AND address_seq = 2;
+SELECT order_id, customer_id, ship_customer_id, ship_address_seq FROM orders WHERE order_id = 'ORD1003';
+```
+
+**Output:**
+
+```
++-------------+---------------+--------------------+
+| category_id | category_name | parent_category_id |
++-------------+---------------+--------------------+
+| CAT04       | Ethnic Wear   | NULL               |
++-------------+---------------+--------------------+
++------------+----------------------------+-------------+
+| product_id | product_name               | category_id |
++------------+----------------------------+-------------+
+| P006       | Brass Diya Set (Pack of 4) | NULL        |
++------------+----------------------------+-------------+
++----------+-------------+------------------+------------------+
+| order_id | customer_id | ship_customer_id | ship_address_seq |
++----------+-------------+------------------+------------------+
+| ORD1003  | C001        | NULL             |             NULL |
++----------+-------------+------------------+------------------+
+```
+
+**Observation:** The child rows were **kept**, and only their foreign key became `NULL`:
+
+- *Ethnic Wear* became a top-level category.
+- *Brass Diya Set* became uncategorized.
+- Order `ORD1003` kept its history but lost the link to the deleted Work address.
+
+---
+
+## Step 8: Verifying Constraints from the Data Dictionary
+
+```sql
+SELECT rc.TABLE_NAME, rc.CONSTRAINT_NAME, rc.REFERENCED_TABLE_NAME,
+       rc.DELETE_RULE, rc.UPDATE_RULE
+FROM information_schema.REFERENTIAL_CONSTRAINTS rc
+WHERE rc.CONSTRAINT_SCHEMA = 'ecommerce_db'
+ORDER BY rc.TABLE_NAME, rc.CONSTRAINT_NAME;
+```
+
+**Output:**
+
+```
++----------------+---------------------+-----------------------+-------------+-------------+
+| TABLE_NAME     | CONSTRAINT_NAME     | REFERENCED_TABLE_NAME | DELETE_RULE | UPDATE_RULE |
++----------------+---------------------+-----------------------+-------------+-------------+
+| address        | fk_address_customer | customer              | CASCADE     | CASCADE     |
+| book           | fk_book_product     | product               | CASCADE     | CASCADE     |
+| category       | fk_category_parent  | category              | SET NULL    | CASCADE     |
+| clothing       | fk_cloth_product    | product               | CASCADE     | CASCADE     |
+| customer_phone | fk_cphone_customer  | customer              | CASCADE     | CASCADE     |
+| delivery       | fk_delivery_order   | orders                | CASCADE     | CASCADE     |
+| electronics    | fk_elec_product     | product               | CASCADE     | CASCADE     |
+| grocery        | fk_grocery_product  | product               | CASCADE     | CASCADE     |
+| orders         | fk_orders_address   | address               | SET NULL    | CASCADE     |
+| orders         | fk_orders_customer  | customer              | RESTRICT    | CASCADE     |
+| order_item     | fk_oitem_order      | orders                | CASCADE     | CASCADE     |
+| order_item     | fk_oitem_product    | product               | RESTRICT    | CASCADE     |
+| payment        | fk_payment_order    | orders                | CASCADE     | CASCADE     |
+| product        | fk_product_category | category              | SET NULL    | CASCADE     |
+| product        | fk_product_seller   | seller                | CASCADE     | CASCADE     |
+| product_image  | fk_pimage_product   | product               | CASCADE     | CASCADE     |
+| seller_phone   | fk_sphone_seller    | seller                | CASCADE     | CASCADE     |
++----------------+---------------------+-----------------------+-------------+-------------+
+```
+
+---
+
+## Result
+
+The ER diagram of the Indian e-commerce platform was converted into **16 relational tables** in MySQL.
+
+- Primary key, foreign key, NOT NULL, UNIQUE and CHECK constraints were applied.
+- Sample data was inserted successfully.
+- Referential integrity violations were rejected with errors 1452 and 1451, and NOT NULL, UNIQUE and CHECK violations were also rejected.
+- `ON DELETE CASCADE` removed dependent rows, and `ON DELETE SET NULL` kept the child rows with a NULL foreign key.
