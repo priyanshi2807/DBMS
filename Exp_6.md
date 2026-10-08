@@ -587,3 +587,535 @@ CALL transfer_employee(110, 'D01');
 mysql> CALL transfer_employee(110, 'D01');
 ERROR 5004 (45000): Neha Joshi is already in department D01
 ```
+
+#### T9. Transfer a department head (Rajesh, head of Engineering).
+
+```sql
+CALL transfer_employee(101, 'D05');
+```
+
+**Output:**
+
+```
+mysql> CALL transfer_employee(101, 'D05');
+ERROR 5005 (45000): Rajesh Kumar heads a department; appoint a new head first
+```
+
+#### T10. Transfer the Lead of an ongoing project (Sneha leads P02 Mobile App Revamp).
+
+```sql
+CALL transfer_employee(104, 'D05');
+```
+
+**Output:**
+
+```
+mysql> CALL transfer_employee(104, 'D05');
+ERROR 5006 (45000): Sneha Kulkarni leads an ongoing project; hand over the project first
+```
+
+> **Observation:** Sneha also has two direct reports (rule 5007), but the checks run in order and rule 5006 comes first. The first rule that fails stops the procedure.
+
+#### T11. Transfer someone who has direct reports (Vikram manages Karthik and Divya).
+
+```sql
+CALL transfer_employee(103, 'D05');
+```
+
+**Output:**
+
+```
+mysql> CALL transfer_employee(103, 'D05');
+ERROR 5007 (45000): Vikram Singh has 2 direct report(s); reassign them first
+```
+
+#### T12. After all the failures, the employees are unchanged and only 3 transfers exist.
+
+```sql
+SELECT emp_id, first_name, dept_id FROM employee WHERE emp_id IN (101, 103, 104, 110) ORDER BY emp_id;
+SELECT COUNT(*) AS successful_transfers FROM transfer_history;
+```
+
+**Output:**
+
+```
+mysql> SELECT emp_id, first_name, dept_id FROM employee WHERE emp_id IN (101, 103, 104, 110) ORDER BY emp_id;
++--------+------------+---------+
+| emp_id | first_name | dept_id |
++--------+------------+---------+
+|    101 | Rajesh     | D01     |
+|    103 | Vikram     | D01     |
+|    104 | Sneha      | D01     |
+|    110 | Neha       | D01     |
++--------+------------+---------+
+4 rows in set
+
+mysql> SELECT COUNT(*) AS successful_transfers FROM transfer_history;
++----------------------+
+| successful_transfers |
++----------------------+
+|                    3 |
++----------------------+
+1 row in set
+```
+
+> **Observation:** None of the eight failed calls changed any data. Each one hit the EXIT HANDLER, which ran `ROLLBACK`.
+
+#### T13. Every failed call was captured by the EXIT HANDLER.
+
+```sql
+SELECT log_id, emp_id, new_dept_id, sql_state, error_no, error_message
+FROM procedure_error_log
+ORDER BY log_id;
+```
+
+**Output:**
+
+```
++--------+--------+-------------+-----------+----------+----------------------------------------------------------------------+
+| log_id | emp_id | new_dept_id | sql_state | error_no | error_message                                                        |
++--------+--------+-------------+-----------+----------+----------------------------------------------------------------------+
+|      1 |   NULL | D02         | 45000     |     5001 | emp_id and new_dept_id are required                                  |
+|      2 |    110 |             | 45000     |     5001 | emp_id and new_dept_id are required                                  |
+|      3 |    999 | D02         | 45000     |     5002 | Employee 999 does not exist                                          |
+|      4 |    110 | D09         | 45000     |     5003 | Department D09 does not exist                                        |
+|      5 |    110 | D01         | 45000     |     5004 | Neha Joshi is already in department D01                              |
+|      6 |    101 | D05         | 45000     |     5005 | Rajesh Kumar heads a department; appoint a new head first            |
+|      7 |    104 | D05         | 45000     |     5006 | Sneha Kulkarni leads an ongoing project; hand over the project first |
+|      8 |    103 | D05         | 45000     |     5007 | Vikram Singh has 2 direct report(s); reassign them first             |
++--------+--------+-------------+-----------+----------+----------------------------------------------------------------------+
+8 rows in set
+```
+
+> **Observation:** The handler read the error with `GET DIAGNOSTICS`, rolled back, logged the failure, then used `RESIGNAL` to pass the **original** error number and message back to the caller.
+
+---
+
+## 5. Testing the Triggers
+
+#### S1. A valid new employee is inserted and audited.
+
+```sql
+INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city,
+                      designation, salary, commission, manager_id, dept_id)
+VALUES (140, 'Kiran', 'Bose', 'F', '2001-03-14', '2026-09-01', 'kiran.bose@company.in',
+        'Kolkata', 'Sales Executive', 40000, 5000, 120, 'D04');
+SELECT emp_id, first_name, salary, commission FROM employee WHERE emp_id = 140;
+```
+
+**Output:**
+
+```
+mysql> INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city, ...
+Query OK, 1 row affected
+
+mysql> SELECT emp_id, first_name, salary, commission FROM employee WHERE emp_id = 140;
++--------+------------+----------+------------+
+| emp_id | first_name | salary   | commission |
++--------+------------+----------+------------+
+|    140 | Kiran      | 40000.00 |    5000.00 |
++--------+------------+----------+------------+
+1 row in set
+```
+
+#### S2. Salary below the minimum.
+
+```sql
+INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city,
+                      designation, salary, manager_id, dept_id)
+VALUES (141, 'Test', 'Low', 'M', '2002-01-01', '2026-09-01', 'test.low@company.in',
+        'Pune', 'Intern', 12000, 127, 'D05');
+```
+
+**Output:**
+
+```
+mysql> INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city, ...
+ERROR 5101 (45000): Salary cannot be below Rs 15,000 per month
+```
+
+#### S3. Exactly Rs 15,000 is allowed.
+
+```sql
+INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city,
+                      designation, salary, manager_id, dept_id)
+VALUES (141, 'Test', 'Boundary', 'M', '2002-01-01', '2026-09-01', 'test.boundary@company.in',
+        'Pune', 'Intern', 15000, 127, 'D05');
+SELECT emp_id, first_name, salary FROM employee WHERE emp_id = 141;
+```
+
+**Output:**
+
+```
+mysql> INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city, ...
+Query OK, 1 row affected
+
+mysql> SELECT emp_id, first_name, salary FROM employee WHERE emp_id = 141;
++--------+------------+----------+
+| emp_id | first_name | salary   |
++--------+------------+----------+
+|    141 | Test       | 15000.00 |
++--------+------------+----------+
+1 row in set
+```
+
+> **Observation:** Boundary value: the rule is `salary < 15000`, so exactly 15,000 passes.
+
+#### S4. Salary above the maximum.
+
+```sql
+INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city,
+                      designation, salary, manager_id, dept_id)
+VALUES (142, 'Test', 'High', 'M', '1980-01-01', '2026-09-01', 'test.high@company.in',
+        'Mumbai', 'Director', 600000, NULL, 'D03');
+```
+
+**Output:**
+
+```
+mysql> INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city, ...
+ERROR 5102 (45000): Salary cannot exceed Rs 5,00,000 per month
+```
+
+#### S5. Commission more than 50% of salary.
+
+```sql
+INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city,
+                      designation, salary, commission, manager_id, dept_id)
+VALUES (143, 'Test', 'Comm', 'F', '1999-01-01', '2026-09-01', 'test.comm@company.in',
+        'Delhi', 'Sales Executive', 40000, 25000, 120, 'D04');
+```
+
+**Output:**
+
+```
+mysql> INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city, ...
+ERROR 5103 (45000): Commission cannot exceed 50% of salary
+```
+
+#### S6. The trigger lets NULL through (comparisons with NULL are unknown); NOT NULL catches it.
+
+```sql
+INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city,
+                      designation, salary, manager_id, dept_id)
+VALUES (144, 'Test', 'Null', 'M', '1999-01-01', '2026-09-01', 'test.null@company.in',
+        'Delhi', 'Intern', NULL, 120, 'D04');
+```
+
+**Output:**
+
+```
+mysql> INSERT INTO employee (emp_id, first_name, last_name, gender, dob, hire_date, email, city, ...
+ERROR 1048 (23000): Column 'salary' cannot be null
+```
+
+> **Observation:** Edge case: `NULL < 15000` is *unknown*, not TRUE, so the trigger's checks don't fire. The column's `NOT NULL` constraint is what rejects the row. Triggers and constraints work together.
+
+#### S7. A 10% raise is accepted and audited.
+
+```sql
+UPDATE employee SET salary = salary * 1.10 WHERE emp_id = 117;
+SELECT emp_id, first_name, salary FROM employee WHERE emp_id = 117;
+```
+
+**Output:**
+
+```
+mysql> UPDATE employee SET salary = salary * 1.10 WHERE emp_id = 117;
+Query OK, 1 row affected
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT emp_id, first_name, salary FROM employee WHERE emp_id = 117;
++--------+------------+----------+
+| emp_id | first_name | salary   |
++--------+------------+----------+
+|    117 | Manoj      | 79200.00 |
++--------+------------+----------+
+1 row in set
+```
+
+#### S8. A raise of exactly 30% is allowed.
+
+```sql
+UPDATE employee SET salary = salary * 1.30 WHERE emp_id = 119;
+SELECT emp_id, first_name, salary FROM employee WHERE emp_id = 119;
+```
+
+**Output:**
+
+```
+mysql> UPDATE employee SET salary = salary * 1.30 WHERE emp_id = 119;
+Query OK, 1 row affected
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT emp_id, first_name, salary FROM employee WHERE emp_id = 119;
++--------+------------+----------+
+| emp_id | first_name | salary   |
++--------+------------+----------+
+|    119 | Imran      | 62400.00 |
++--------+------------+----------+
+1 row in set
+```
+
+> **Observation:** Boundary value: 48,000 × 1.30 = 62,400 is exactly 30%, which is allowed. S9 shows 31% being rejected.
+
+#### S9. A raise of more than 30%.
+
+```sql
+UPDATE employee SET salary = salary * 1.31 WHERE emp_id = 113;
+```
+
+**Output:**
+
+```
+mysql> UPDATE employee SET salary = salary * 1.31 WHERE emp_id = 113;
+ERROR 5104 (45000): Raise for employee 113 is 31.0%; maximum allowed is 30%
+```
+
+#### S10. Salary reduction.
+
+```sql
+UPDATE employee SET salary = salary - 1000 WHERE emp_id = 113;
+```
+
+**Output:**
+
+```
+mysql> UPDATE employee SET salary = salary - 1000 WHERE emp_id = 113;
+ERROR 5105 (45000): Salary of employee 113 cannot be reduced (60000.00 -> 59000.00)
+```
+
+#### S11. One bad row makes the WHOLE statement fail; no row is changed.
+
+```sql
+SELECT emp_id, first_name, salary FROM employee WHERE dept_id = 'D05' ORDER BY emp_id;
+UPDATE employee SET salary = salary + 20000 WHERE dept_id = 'D05';
+SELECT emp_id, first_name, salary FROM employee WHERE dept_id = 'D05' ORDER BY emp_id;
+```
+
+**Output:**
+
+```
+mysql> SELECT emp_id, first_name, salary FROM employee WHERE dept_id = 'D05' ORDER BY emp_id;
++--------+------------+-----------+
+| emp_id | first_name | salary    |
++--------+------------+-----------+
+|    126 | Venkatesh  | 175000.00 |
+|    127 | Deepa      |  98000.00 |
+|    128 | Harish     |  76000.00 |
+|    129 | Swati      |  54000.00 |
+|    130 | Gaurav     |  50000.00 |
+|    131 | Bhavna     |  35000.00 |
+|    141 | Test       |  15000.00 |
++--------+------------+-----------+
+7 rows in set
+
+mysql> UPDATE employee SET salary = salary + 20000 WHERE dept_id = 'D05';
+ERROR 5104 (45000): Raise for employee 129 is 37.0%; maximum allowed is 30%
+
+mysql> SELECT emp_id, first_name, salary FROM employee WHERE dept_id = 'D05' ORDER BY emp_id;
++--------+------------+-----------+
+| emp_id | first_name | salary    |
++--------+------------+-----------+
+|    126 | Venkatesh  | 175000.00 |
+|    127 | Deepa      |  98000.00 |
+|    128 | Harish     |  76000.00 |
+|    129 | Swati      |  54000.00 |
+|    130 | Gaurav     |  50000.00 |
+|    131 | Bhavna     |  35000.00 |
+|    141 | Test       |  15000.00 |
++--------+------------+-----------+
+7 rows in set
+```
+
+> **Observation:** The trigger runs **for each row**. Swati's +37% raise failed, and MySQL rolled back the **whole statement**, including the rows already updated (Venkatesh, Deepa, Harish). No salary changed.
+
+#### S12. Changing only the city does NOT create an audit row.
+
+```sql
+SELECT COUNT(*) AS audit_rows_before FROM employee_audit;
+UPDATE employee SET city = 'Navi Mumbai' WHERE emp_id = 114;
+SELECT COUNT(*) AS audit_rows_after FROM employee_audit;
+```
+
+**Output:**
+
+```
+mysql> SELECT COUNT(*) AS audit_rows_before FROM employee_audit;
++-------------------+
+| audit_rows_before |
++-------------------+
+|                 7 |
++-------------------+
+1 row in set
+
+mysql> UPDATE employee SET city = 'Navi Mumbai' WHERE emp_id = 114;
+Query OK, 1 row affected
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT COUNT(*) AS audit_rows_after FROM employee_audit;
++------------------+
+| audit_rows_after |
++------------------+
+|                7 |
++------------------+
+1 row in set
+```
+
+> **Observation:** The audit trigger records only changes to tracked columns (dept, salary, designation), so a city change creates no audit row.
+
+#### S13. Setting a salary to its current value is not a "reduction" and is not audited.
+
+```sql
+UPDATE employee SET salary = salary WHERE emp_id = 114;
+SELECT COUNT(*) AS audit_rows_after_noop FROM employee_audit;
+```
+
+**Output:**
+
+```
+mysql> UPDATE employee SET salary = salary WHERE emp_id = 114;
+Query OK, 0 rows affected
+Rows matched: 1  Changed: 0  Warnings: 0
+
+mysql> SELECT COUNT(*) AS audit_rows_after_noop FROM employee_audit;
++-----------------------+
+| audit_rows_after_noop |
++-----------------------+
+|                     7 |
++-----------------------+
+1 row in set
+```
+
+> **Observation:** `salary = salary` is not a reduction and changes nothing (`Changed: 0`), so no audit row is written.
+
+#### S14. Deleting a department head is blocked.
+
+```sql
+DELETE FROM employee WHERE emp_id = 111;
+```
+
+**Output:**
+
+```
+mysql> DELETE FROM employee WHERE emp_id = 111;
+ERROR 5106 (45000): Cannot delete a department head; appoint a new head first
+```
+
+#### S15. Deleting an ordinary employee is audited (works_on rows cascade).
+
+```sql
+DELETE FROM employee WHERE emp_id = 141;
+```
+
+**Output:**
+
+```
+Query OK, 1 row affected
+```
+
+#### S16. The successful transfers in T1-T3 were audited by the UPDATE trigger.
+
+```sql
+SELECT a.audit_id, a.emp_id, a.old_dept, a.new_dept, t.transfer_id
+FROM employee_audit a
+JOIN transfer_history t ON t.emp_id = a.emp_id AND t.to_dept = a.new_dept
+ORDER BY a.audit_id;
+```
+
+**Output:**
+
+```
++----------+--------+----------+----------+-------------+
+| audit_id | emp_id | old_dept | new_dept | transfer_id |
++----------+--------+----------+----------+-------------+
+|        1 |    105 | D01      | D03      |           1 |
+|        2 |    132 | D05      | D02      |           2 |
+|        3 |    112 | D02      | D04      |           3 |
++----------+--------+----------+----------+-------------+
+3 rows in set
+```
+
+> **Observation:** Triggers also fire for changes made **inside the stored procedure**. Each successful transfer has a matching UPDATE audit row.
+
+---
+
+## 6. Final Audit Trail
+
+#### G1. Every change made by the tests, recorded automatically by the triggers.
+
+```sql
+SELECT audit_id, emp_id, action, old_dept, new_dept, old_salary, new_salary,
+       old_designation, new_designation, changed_by
+FROM employee_audit
+ORDER BY audit_id;
+```
+
+**Output:**
+
+```
++----------+--------+--------+----------+----------+------------+------------+---------------------+---------------------+----------------+
+| audit_id | emp_id | action | old_dept | new_dept | old_salary | new_salary | old_designation     | new_designation     | changed_by     |
++----------+--------+--------+----------+----------+------------+------------+---------------------+---------------------+----------------+
+|        1 |    105 | UPDATE | D01      | D03      |   95000.00 |   95000.00 | Software Engineer   | Software Engineer   | root@localhost |
+|        2 |    132 | UPDATE | D05      | D02      |  120000.00 |  120000.00 | Quality Manager     | Quality Manager     | root@localhost |
+|        3 |    112 | UPDATE | D02      | D04      |   90000.00 |   90000.00 | HR Business Partner | HR Business Partner | root@localhost |
+|        4 |    140 | INSERT | NULL     | D04      |       NULL |   40000.00 | NULL                | Sales Executive     | root@localhost |
+|        5 |    141 | INSERT | NULL     | D05      |       NULL |   15000.00 | NULL                | Intern              | root@localhost |
+|        6 |    117 | UPDATE | D03      | D03      |   72000.00 |   79200.00 | Accountant          | Accountant          | root@localhost |
+|        7 |    119 | UPDATE | D03      | D03      |   48000.00 |   62400.00 | Accounts Executive  | Accounts Executive  | root@localhost |
+|       11 |    141 | DELETE | D05      | NULL     |   15000.00 |       NULL | Intern              | NULL                | root@localhost |
++----------+--------+--------+----------+----------+------------+------------+---------------------+---------------------+----------------+
+8 rows in set
+```
+
+> **Observation:** `audit_id` jumps from **7 to 11**. During S11, the AFTER UPDATE trigger wrote audit rows 8–10 for the first three employees, then Swati's row failed and the whole statement, **including the trigger's inserts**, was rolled back. AUTO_INCREMENT values are never reused, so the gap is proof that the rollback happened. `changed_at` is left out of this listing because it holds the time of the run.
+
+---
+
+## 7. Edge-Case Test Summary
+
+| # | Test case | Expected | Actual |
+|---|---|---|---|
+| T1 | Valid transfer | Moved, manager updated, history and audit rows written | ✅ |
+| T2 | `'  d02 '` (lower case and spaces) | Normalised to `D02`, success | ✅ |
+| T3 | Lead of a *completed* project | Allowed | ✅ |
+| T4 | `emp_id = NULL` | Error 5001 | ✅ |
+| T5 | Blank department code | Error 5001 | ✅ |
+| T6 | Employee does not exist | Error 5002 | ✅ |
+| T7 | Department does not exist | Error 5003 | ✅ |
+| T8 | Same department | Error 5004 | ✅ |
+| T9 | Department head | Error 5005 | ✅ |
+| T10 | Lead of an ongoing project | Error 5006 | ✅ |
+| T11 | Has direct reports | Error 5007 | ✅ |
+| T12 | Data after failed calls | Unchanged (rolled back) | ✅ |
+| T13 | Failed calls logged | 8 rows in `procedure_error_log` | ✅ |
+| S1 | Valid INSERT | Inserted and audited | ✅ |
+| S2 / S4 / S5 | Salary too low / too high / commission > 50% | Errors 5101 / 5102 / 5103 | ✅ |
+| S3 | Salary exactly ₹15,000 | Allowed (boundary) | ✅ |
+| S6 | Salary NULL | Passes the trigger, rejected by NOT NULL (1048) | ✅ |
+| S7 | 10% raise | Allowed and audited | ✅ |
+| S8 | Exactly 30% raise | Allowed (boundary) | ✅ |
+| S9 | 31% raise | Error 5104 | ✅ |
+| S10 | Salary cut | Error 5105 | ✅ |
+| S11 | Multi-row UPDATE with one bad row | Whole statement rolled back | ✅ |
+| S12 | Update of an untracked column | No audit row | ✅ |
+| S13 | No-op update (`salary = salary`) | Not a cut, no audit row | ✅ |
+| S14 | Delete a department head | Error 5106 | ✅ |
+| S15 | Delete an ordinary employee | Deleted and audited | ✅ |
+| S16 | Trigger fired from inside the procedure | Audit row for each transfer | ✅ |
+
+---
+
+## Result
+
+The stored procedure **`transfer_employee(emp_id, new_dept_id)`** was created:
+- It validates the input and enforces seven business rules with custom errors raised by `SIGNAL`.
+- Its EXIT HANDLER uses `GET DIAGNOSTICS`, `ROLLBACK`, error logging and `RESIGNAL`, which makes every transfer **all-or-nothing**.
+
+**Triggers** were implemented for:
+- **Salary validation:** limits, commission cap, maximum raise and no reductions (`BEFORE INSERT/UPDATE`).
+- **Protection of department heads** from deletion (`BEFORE DELETE`).
+- **Audit logging** of every insert, delete and relevant update into `employee_audit` (`AFTER` triggers).
+
+All 29 edge cases behaved as expected. They covered NULL and blank input, case and whitespace normalisation, boundary values, multi-row statement rollback, no-op updates, untracked columns, and triggers firing inside the procedure.
