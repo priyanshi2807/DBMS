@@ -522,3 +522,712 @@ ORDER BY e.emp_id;
 | Tanvi      | Marketing   | AI Chatbot (Hindi-English) | Engineering     | Content    |
 +------------+-------------+----------------------------+-----------------+------------+
 ```
+
+
+#### Q15. Weekly hours each department contributes to projects.
+
+```sql
+SELECT d.dept_name,
+       COUNT(DISTINCT e.emp_id) AS staff_on_projects,
+       SUM(w.hours_per_week)    AS weekly_hours
+FROM department d
+JOIN employee e ON e.dept_id = d.dept_id
+JOIN works_on w ON w.emp_id  = e.emp_id
+GROUP BY d.dept_id, d.dept_name
+ORDER BY weekly_hours DESC;
+```
+
+**Output:**
+
+```
++-----------------+-------------------+--------------+
+| dept_name       | staff_on_projects | weekly_hours |
++-----------------+-------------------+--------------+
+| Engineering     |                10 |        360.0 |
+| Operations      |                 6 |        195.0 |
+| Marketing       |                 6 |        175.0 |
+| Finance         |                 5 |        140.0 |
+| Human Resources |                 3 |         75.0 |
++-----------------+-------------------+--------------+
+```
+
+### 4.E Correlated Subqueries
+
+A subquery that refers to a column of the **outer** query, so it is evaluated once for each outer row.
+
+#### Q16. Employees earning more than the average salary of their own department.
+
+```sql
+SELECT e.emp_id, e.first_name, e.dept_id, e.salary
+FROM employee e
+WHERE e.salary > (SELECT AVG(e2.salary)
+                  FROM employee e2
+                  WHERE e2.dept_id = e.dept_id)
+ORDER BY e.dept_id, e.salary DESC;
+```
+
+**Output:**
+
+```
++--------+------------+---------+-----------+
+| emp_id | first_name | dept_id | salary    |
++--------+------------+---------+-----------+
+|    101 | Rajesh     | D01     | 210000.00 |
+|    102 | Ananya     | D01     | 165000.00 |
+|    103 | Vikram     | D01     | 135000.00 |
+|    104 | Sneha      | D01     | 128000.00 |
+|    111 | Meenakshi  | D02     | 150000.00 |
+|    112 | Sanjay     | D02     |  90000.00 |
+|    115 | Suresh     | D03     | 185000.00 |
+|    116 | Kavita     | D03     | 105000.00 |
+|    120 | Nisha      | D04     | 160000.00 |
+|    121 | Rohit      | D04     | 110000.00 |
+|    126 | Venkatesh  | D05     | 175000.00 |
+|    132 | Naveen     | D05     | 120000.00 |
+|    127 | Deepa      | D05     |  98000.00 |
++--------+------------+---------+-----------+
+```
+
+#### Q17. Highest-paid non-manager in each department.
+
+```sql
+SELECT e.dept_id, e.first_name, e.designation, e.salary
+FROM employee e
+WHERE e.manager_id IS NOT NULL
+  AND e.salary = (SELECT MAX(e2.salary)
+                  FROM employee e2
+                  WHERE e2.dept_id = e.dept_id
+                    AND e2.manager_id IS NOT NULL)
+ORDER BY e.dept_id;
+```
+
+**Output:**
+
+```
++---------+------------+---------------------+-----------+
+| dept_id | first_name | designation         | salary    |
++---------+------------+---------------------+-----------+
+| D01     | Ananya     | Tech Lead           | 165000.00 |
+| D02     | Sanjay     | HR Business Partner |  90000.00 |
+| D03     | Kavita     | Senior Accountant   | 105000.00 |
+| D04     | Rohit      | Brand Manager       | 110000.00 |
+| D05     | Naveen     | Quality Manager     | 120000.00 |
++---------+------------+---------------------+-----------+
+```
+
+#### Q18. Each Operations employee with their number of projects and total hours.
+
+```sql
+SELECT e.emp_id, e.first_name,
+       (SELECT COUNT(*) FROM works_on w WHERE w.emp_id = e.emp_id)           AS projects,
+       (SELECT IFNULL(SUM(w.hours_per_week), 0)
+          FROM works_on w WHERE w.emp_id = e.emp_id)                         AS weekly_hours
+FROM employee e
+WHERE e.dept_id = 'D05'
+ORDER BY e.emp_id;
+```
+
+**Output:**
+
+```
++--------+------------+----------+--------------+
+| emp_id | first_name | projects | weekly_hours |
++--------+------------+----------+--------------+
+|    126 | Venkatesh  |        2 |         15.0 |
+|    127 | Deepa      |        1 |         35.0 |
+|    128 | Harish     |        1 |         40.0 |
+|    129 | Swati      |        1 |         40.0 |
+|    130 | Gaurav     |        1 |         40.0 |
+|    131 | Bhavna     |        0 |          0.0 |
+|    132 | Naveen     |        2 |         25.0 |
++--------+------------+----------+--------------+
+```
+
+#### Q19. Projects whose budget is above the average budget of the same department's projects.
+
+```sql
+SELECT p.proj_id, p.proj_name, p.dept_id, p.budget
+FROM project p
+WHERE p.budget > (SELECT AVG(p2.budget) FROM project p2 WHERE p2.dept_id = p.dept_id);
+```
+
+**Output:**
+
+```
++---------+----------------------+---------+------------+
+| proj_id | proj_name            | dept_id | budget     |
++---------+----------------------+---------+------------+
+| P01     | UPI Payment Gateway  | D01     | 4500000.00 |
+| P07     | Warehouse Automation | D05     | 5000000.00 |
++---------+----------------------+---------+------------+
+```
+
+### 4.F EXISTS / NOT EXISTS
+
+`EXISTS` is TRUE as soon as the subquery returns **one** row. It checks existence, not values, so `SELECT 1` is enough.
+
+#### Q20. Departments that have at least one employee earning Rs 1,50,000 or more.
+
+```sql
+SELECT d.dept_id, d.dept_name
+FROM department d
+WHERE EXISTS (SELECT 1 FROM employee e
+              WHERE e.dept_id = d.dept_id AND e.salary >= 150000)
+ORDER BY d.dept_id;
+```
+
+**Output:**
+
+```
++---------+-----------------+
+| dept_id | dept_name       |
++---------+-----------------+
+| D01     | Engineering     |
+| D02     | Human Resources |
+| D03     | Finance         |
+| D04     | Marketing       |
+| D05     | Operations      |
++---------+-----------------+
+```
+
+#### Q21. Employees not working on any project (same result as Q5).
+
+```sql
+SELECT e.emp_id, e.first_name, e.last_name
+FROM employee e
+WHERE NOT EXISTS (SELECT 1 FROM works_on w WHERE w.emp_id = e.emp_id);
+```
+
+**Output:**
+
+```
++--------+------------+-----------+
+| emp_id | first_name | last_name |
++--------+------------+-----------+
+|    114 | Aditya     | Bhatt     |
+|    131 | Bhavna     | Thakur    |
++--------+------------+-----------+
+```
+
+#### Q22. Employees who work on at least one project with more than 35 hours per week.
+
+```sql
+SELECT e.emp_id, e.first_name, e.dept_id
+FROM employee e
+WHERE EXISTS (SELECT 1 FROM works_on w
+              WHERE w.emp_id = e.emp_id AND w.hours_per_week > 35)
+  AND e.dept_id IN ('D01', 'D05')
+ORDER BY e.emp_id;
+```
+
+**Output:**
+
+```
++--------+------------+---------+
+| emp_id | first_name | dept_id |
++--------+------------+---------+
+|    106 | Pooja      | D01     |
+|    107 | Karthik    | D01     |
+|    109 | Rahul      | D01     |
+|    110 | Neha       | D01     |
+|    128 | Harish     | D05     |
+|    129 | Swati      | D05     |
+|    130 | Gaurav     | D05     |
++--------+------------+---------+
+```
+
+#### Q23. Employees who work on EVERY project that Rajesh (101) works on.
+
+```sql
+SELECT e.emp_id, e.first_name
+FROM employee e
+WHERE NOT EXISTS (
+        SELECT 1 FROM works_on r
+        WHERE r.emp_id = 101
+          AND NOT EXISTS (SELECT 1 FROM works_on w
+                          WHERE w.emp_id = e.emp_id
+                            AND w.proj_id = r.proj_id));
+```
+
+**Output:**
+
+```
++--------+------------+
+| emp_id | first_name |
++--------+------------+
+|    101 | Rajesh     |
+|    103 | Vikram     |
++--------+------------+
+```
+
+> **Observation:** This is *relational division* (÷), written with a double `NOT EXISTS`: "there is no project of Rajesh that this employee does **not** work on". Rajesh works on P01 and P03. Only Vikram also works on both.
+
+### 4.G Simulated INTERSECT
+
+Rows present in **both** result sets.
+
+#### Q24. Engineering employees who ALSO served on the HR hiring project P04.
+
+```sql
+SELECT emp_id, first_name
+FROM employee
+WHERE dept_id = 'D01'
+  AND emp_id IN (SELECT emp_id FROM works_on WHERE proj_id = 'P04')
+ORDER BY emp_id;
+```
+
+**Output:**
+
+```
++--------+------------+
+| emp_id | first_name |
++--------+------------+
+|    104 | Sneha      |
+|    108 | Divya      |
++--------+------------+
+```
+
+#### Q25. Same result using a join on the two sets.
+
+```sql
+SELECT DISTINCT a.emp_id, a.first_name
+FROM (SELECT emp_id, first_name FROM employee WHERE dept_id = 'D01') AS a
+INNER JOIN (SELECT emp_id FROM works_on WHERE proj_id = 'P04') AS b
+        ON a.emp_id = b.emp_id
+ORDER BY a.emp_id;
+```
+
+**Output:**
+
+```
++--------+------------+
+| emp_id | first_name |
++--------+------------+
+|    104 | Sneha      |
+|    108 | Divya      |
++--------+------------+
+```
+
+#### Q26. Same result with the INTERSECT operator.
+
+```sql
+SELECT emp_id FROM employee WHERE dept_id = 'D01'
+INTERSECT
+SELECT emp_id FROM works_on WHERE proj_id = 'P04'
+ORDER BY emp_id;
+```
+
+**Output:**
+
+```
++--------+
+| emp_id |
++--------+
+|    104 |
+|    108 |
++--------+
+```
+
+> **Observation:** Q24, Q25 and Q26 return the same employees (104, 108). The native operator needs MySQL **8.0.31 or later**. On older versions, `IN`, `EXISTS` or a join is the standard workaround.
+
+### 4.H Simulated EXCEPT (MINUS)
+
+Rows in the first result set that are **not** in the second.
+
+#### Q27. Engineering employees EXCEPT those on the Mobile App Revamp (P02).
+
+```sql
+SELECT emp_id, first_name
+FROM employee
+WHERE dept_id = 'D01'
+  AND emp_id NOT IN (SELECT emp_id FROM works_on WHERE proj_id = 'P02')
+ORDER BY emp_id;
+```
+
+**Output:**
+
+```
++--------+------------+
+| emp_id | first_name |
++--------+------------+
+|    101 | Rajesh     |
+|    103 | Vikram     |
+|    105 | Arjun      |
+|    107 | Karthik    |
+|    109 | Rahul      |
+|    110 | Neha       |
++--------+------------+
+```
+
+#### Q28. Same result as Q27 with an anti-join.
+
+```sql
+SELECT e.emp_id, e.first_name
+FROM employee e
+LEFT JOIN works_on w ON w.emp_id = e.emp_id AND w.proj_id = 'P02'
+WHERE e.dept_id = 'D01' AND w.emp_id IS NULL
+ORDER BY e.emp_id;
+```
+
+**Output:**
+
+```
++--------+------------+
+| emp_id | first_name |
++--------+------------+
+|    101 | Rajesh     |
+|    103 | Vikram     |
+|    105 | Arjun      |
+|    107 | Karthik    |
+|    109 | Rahul      |
+|    110 | Neha       |
++--------+------------+
+```
+
+#### Q29. Same result with the EXCEPT operator.
+
+```sql
+SELECT emp_id FROM employee WHERE dept_id = 'D01'
+EXCEPT
+SELECT emp_id FROM works_on WHERE proj_id = 'P02'
+ORDER BY emp_id;
+```
+
+**Output:**
+
+```
++--------+
+| emp_id |
++--------+
+|    101 |
+|    103 |
+|    105 |
+|    107 |
+|    109 |
+|    110 |
++--------+
+```
+
+> **Observation:** Q27, Q28 and Q29 return the same six employees. Be careful with `NOT IN`: if the subquery returns even one NULL, `NOT IN` returns **no rows**. `NOT EXISTS` and `LEFT JOIN … IS NULL` are NULL-safe.
+
+#### Q30. Departments that do NOT control any Ongoing project.
+
+```sql
+SELECT d.dept_id, d.dept_name
+FROM department d
+WHERE NOT EXISTS (SELECT 1 FROM project p
+                  WHERE p.dept_id = d.dept_id AND p.status = 'Ongoing');
+```
+
+**Output:**
+
+```
++---------+-----------------+
+| dept_id | dept_name       |
++---------+-----------------+
+| D02     | Human Resources |
++---------+-----------------+
+```
+
+---
+
+## 5. Comparing Execution Plans with EXPLAIN
+
+#### E1. Refresh table statistics first, then filter on a column without an index: a full table scan.
+
+```sql
+ANALYZE TABLE employee, department, project, works_on;
+EXPLAIN SELECT * FROM employee WHERE city = 'Chennai';
+```
+
+**Output:**
+
+```
++-----------------------+---------+----------+----------+
+| Table                 | Op      | Msg_type | Msg_text |
++-----------------------+---------+----------+----------+
+| company_db.employee   | analyze | status   | OK       |
+| company_db.department | analyze | status   | OK       |
+| company_db.project    | analyze | status   | OK       |
+| company_db.works_on   | analyze | status   | OK       |
++-----------------------+---------+----------+----------+
++----+-------------+----------+------------+------+---------------+------+---------+------+------+----------+-------------+
+| id | select_type | table    | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
++----+-------------+----------+------------+------+---------------+------+---------+------+------+----------+-------------+
+|  1 | SIMPLE      | employee | NULL       | ALL  | NULL          | NULL | NULL    | NULL |   32 |    10.00 | Using where |
++----+-------------+----------+------------+------+---------------+------+---------+------+------+----------+-------------+
+```
+
+> **Observation:** `type = ALL` means a **full table scan**. MySQL reads all 32 rows and filters them (`Using where`), and it estimates only 10% of them will match.
+
+#### E2. After creating an index on city, MySQL looks up matching rows directly.
+
+```sql
+CREATE INDEX idx_emp_city ON employee(city);
+EXPLAIN SELECT * FROM employee WHERE city = 'Chennai';
+```
+
+**Output:**
+
+```
++----+-------------+----------+------------+------+---------------+--------------+---------+-------+------+----------+-------+
+| id | select_type | table    | partitions | type | possible_keys | key          | key_len | ref   | rows | filtered | Extra |
++----+-------------+----------+------------+------+---------------+--------------+---------+-------+------+----------+-------+
+|  1 | SIMPLE      | employee | NULL       | ref  | idx_emp_city  | idx_emp_city | 122     | const |    4 |   100.00 | NULL  |
++----+-------------+----------+------------+------+---------------+--------------+---------+-------+------+----------+-------+
+```
+
+> **Observation:** With the index, `type` becomes **`ref`** using `idx_emp_city`, and only **4 rows** (the Chennai employees) are read instead of 32.
+
+#### E3. Lookup by primary key is the cheapest access type (const).
+
+```sql
+EXPLAIN SELECT * FROM employee WHERE emp_id = 105;
+```
+
+**Output:**
+
+```
++----+-------------+----------+------------+-------+---------------+---------+---------+-------+------+----------+-------+
+| id | select_type | table    | partitions | type  | possible_keys | key     | key_len | ref   | rows | filtered | Extra |
++----+-------------+----------+------------+-------+---------------+---------+---------+-------+------+----------+-------+
+|  1 | SIMPLE      | employee | NULL       | const | PRIMARY       | PRIMARY | 4       | const |    1 |   100.00 | NULL  |
++----+-------------+----------+------------+-------+---------------+---------+---------+-------+------+----------+-------+
+```
+
+> **Observation:** `type = const` is the best access type. A primary-key equality can match at most one row, so MySQL reads it once and treats it as a constant.
+
+#### E4. An index on salary turns a range condition into a range scan.
+
+```sql
+CREATE INDEX idx_emp_salary ON employee(salary);
+EXPLAIN SELECT emp_id, salary FROM employee WHERE salary > 150000;
+```
+
+**Output:**
+
+```
++----+-------------+----------+------------+-------+----------------+----------------+---------+------+------+----------+--------------------------+
+| id | select_type | table    | partitions | type  | possible_keys  | key            | key_len | ref  | rows | filtered | Extra                    |
++----+-------------+----------+------------+-------+----------------+----------------+---------+------+------+----------+--------------------------+
+|  1 | SIMPLE      | employee | NULL       | range | idx_emp_salary | idx_emp_salary | 5       | NULL |    5 |   100.00 | Using where; Using index |
++----+-------------+----------+------------+-------+----------------+----------------+---------+------+------+----------+--------------------------+
+```
+
+> **Observation:** `type = range` uses `idx_emp_salary` to read only salaries above 1,50,000. `Using index` means the index alone contains every column needed (a **covering index**), so the table itself is never read.
+
+#### E5. Join order and eq_ref lookups on primary keys.
+
+```sql
+EXPLAIN
+SELECT e.first_name, p.proj_name, w.hours_per_week
+FROM employee e
+JOIN works_on w ON e.emp_id  = w.emp_id
+JOIN project  p ON w.proj_id = p.proj_id
+WHERE p.proj_id = 'P03';
+```
+
+**Output:**
+
+```
++----+-------------+-------+------------+--------+--------------------+------------+---------+---------------------+------+----------+-----------------------+
+| id | select_type | table | partitions | type   | possible_keys      | key        | key_len | ref                 | rows | filtered | Extra                 |
++----+-------------+-------+------------+--------+--------------------+------------+---------+---------------------+------+----------+-----------------------+
+|  1 | SIMPLE      | p     | NULL       | const  | PRIMARY            | PRIMARY    | 12      | const               |    1 |   100.00 | NULL                  |
+|  1 | SIMPLE      | w     | NULL       | ref    | PRIMARY,fk_wo_proj | fk_wo_proj | 12      | const               |    6 |   100.00 | Using index condition |
+|  1 | SIMPLE      | e     | NULL       | eq_ref | PRIMARY            | PRIMARY    | 4       | company_db.w.emp_id |    1 |   100.00 | NULL                  |
++----+-------------+-------+------------+--------+--------------------+------------+---------+---------------------+------+----------+-----------------------+
+```
+
+> **Observation:** MySQL picks its own **join order**: `project` first (`const` on the primary key), then `works_on` via the `fk_wo_proj` index (`ref`, 6 rows), then one `employee` row per match (`eq_ref` on the primary key). Total work is about 1 × 6 × 1 rows instead of 32 × 40 × 8.
+
+#### E6. Q16 as written: the subquery is DEPENDENT and re-runs per outer row.
+
+```sql
+EXPLAIN
+SELECT e.emp_id, e.first_name, e.salary
+FROM employee e
+WHERE e.salary > (SELECT AVG(e2.salary) FROM employee e2 WHERE e2.dept_id = e.dept_id);
+```
+
+**Output:**
+
+```
++----+--------------------+-------+------------+------+---------------+-------------+---------+----------------------+------+----------+-------------+
+| id | select_type        | table | partitions | type | possible_keys | key         | key_len | ref                  | rows | filtered | Extra       |
++----+--------------------+-------+------------+------+---------------+-------------+---------+----------------------+------+----------+-------------+
+|  1 | PRIMARY            | e     | NULL       | ALL  | NULL          | NULL        | NULL    | NULL                 |   32 |   100.00 | Using where |
+|  2 | DEPENDENT SUBQUERY | e2    | NULL       | ref  | fk_emp_dept   | fk_emp_dept | 12      | company_db.e.dept_id |    6 |   100.00 | NULL        |
++----+--------------------+-------+------------+------+---------------+-------------+---------+----------------------+------+----------+-------------+
+```
+
+> **Observation:** `select_type = DEPENDENT SUBQUERY` means the inner query depends on `e.dept_id` and is **re-executed for each of the 32 outer rows**.
+
+#### E7. Q16 rewritten as a JOIN with a derived table: averages computed once.
+
+```sql
+EXPLAIN
+SELECT e.emp_id, e.first_name, e.salary
+FROM employee e
+JOIN (SELECT dept_id, AVG(salary) AS avg_sal
+      FROM employee GROUP BY dept_id) AS da
+  ON da.dept_id = e.dept_id
+WHERE e.salary > da.avg_sal;
+```
+
+**Output:**
+
+```
++----+-------------+------------+------------+-------+----------------------------+-------------+---------+----------------------+------+----------+--------------------------+
+| id | select_type | table      | partitions | type  | possible_keys              | key         | key_len | ref                  | rows | filtered | Extra                    |
++----+-------------+------------+------------+-------+----------------------------+-------------+---------+----------------------+------+----------+--------------------------+
+|  1 | PRIMARY     | e          | NULL       | ALL   | fk_emp_dept,idx_emp_salary | NULL        | NULL    | NULL                 |   32 |   100.00 | NULL                     |
+|  1 | PRIMARY     | <derived2> | NULL       | ref   | <auto_key0>                | <auto_key0> | 12      | company_db.e.dept_id |    4 |    33.33 | Using where; Using index |
+|  2 | DERIVED     | employee   | NULL       | index | fk_emp_dept                | fk_emp_dept | 12      | NULL                 |   32 |   100.00 | NULL                     |
++----+-------------+------------+------------+-------+----------------------------+-------------+---------+----------------------+------+----------+--------------------------+
+```
+
+> **Observation:** The rewrite turns the subquery into a **`DERIVED`** table. The five department averages are computed **once**, then joined through an automatic index (`<auto_key0>`). On large tables this is usually much faster than E6.
+
+#### E8. Three ways to find employees on some project (semi-join).
+
+```sql
+EXPLAIN SELECT emp_id FROM employee e WHERE emp_id IN (SELECT emp_id FROM works_on);
+EXPLAIN SELECT emp_id FROM employee e WHERE EXISTS (SELECT 1 FROM works_on w WHERE w.emp_id = e.emp_id);
+EXPLAIN SELECT DISTINCT e.emp_id FROM employee e JOIN works_on w ON w.emp_id = e.emp_id;
+```
+
+**Output:**
+
+```
++----+-------------+----------+------------+-------+---------------+----------------+---------+---------------------+------+----------+----------------------------+
+| id | select_type | table    | partitions | type  | possible_keys | key            | key_len | ref                 | rows | filtered | Extra                      |
++----+-------------+----------+------------+-------+---------------+----------------+---------+---------------------+------+----------+----------------------------+
+|  1 | SIMPLE      | e        | NULL       | index | PRIMARY       | fk_emp_manager | 5       | NULL                |   32 |   100.00 | Using index                |
+|  1 | SIMPLE      | works_on | NULL       | ref   | PRIMARY       | PRIMARY        | 4       | company_db.e.emp_id |    1 |   100.00 | Using index; FirstMatch(e) |
++----+-------------+----------+------------+-------+---------------+----------------+---------+---------------------+------+----------+----------------------------+
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+----------------------------+
+| id | select_type | table | partitions | type  | possible_keys | key            | key_len | ref                 | rows | filtered | Extra                      |
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+----------------------------+
+|  1 | SIMPLE      | e     | NULL       | index | PRIMARY       | fk_emp_manager | 5       | NULL                |   32 |   100.00 | Using index                |
+|  1 | SIMPLE      | w     | NULL       | ref   | PRIMARY       | PRIMARY        | 4       | company_db.e.emp_id |    1 |   100.00 | Using index; FirstMatch(e) |
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+----------------------------+
++----+-------------+-------+------------+-------+----------------------------------------------------------------------+----------------+---------+---------------------+------+----------+------------------------------+
+| id | select_type | table | partitions | type  | possible_keys                                                        | key            | key_len | ref                 | rows | filtered | Extra                        |
++----+-------------+-------+------------+-------+----------------------------------------------------------------------+----------------+---------+---------------------+------+----------+------------------------------+
+|  1 | SIMPLE      | e     | NULL       | index | PRIMARY,email,fk_emp_manager,fk_emp_dept,idx_emp_city,idx_emp_salary | fk_emp_manager | 5       | NULL                |   32 |   100.00 | Using index; Using temporary |
+|  1 | SIMPLE      | w     | NULL       | ref   | PRIMARY                                                              | PRIMARY        | 4       | company_db.e.emp_id |    1 |   100.00 | Using index; Distinct        |
++----+-------------+-------+------------+-------+----------------------------------------------------------------------+----------------+---------+---------------------+------+----------+------------------------------+
+```
+
+> **Observation:** MySQL 8 rewrote both `IN` and `EXISTS` into the **same semi-join plan** (`FirstMatch`: stop at the first matching project). The `JOIN + DISTINCT` version needs **`Using temporary`**, an extra temporary table to remove duplicates, so it does more work.
+
+#### E9. Three ways to write the anti-join of Q5.
+
+```sql
+EXPLAIN SELECT emp_id FROM employee WHERE emp_id NOT IN (SELECT emp_id FROM works_on);
+EXPLAIN SELECT emp_id FROM employee e WHERE NOT EXISTS (SELECT 1 FROM works_on w WHERE w.emp_id = e.emp_id);
+EXPLAIN SELECT e.emp_id FROM employee e LEFT JOIN works_on w ON w.emp_id = e.emp_id WHERE w.emp_id IS NULL;
+```
+
+**Output:**
+
+```
++----+-------------+----------+------------+-------+---------------+----------------+---------+----------------------------+------+----------+--------------------------------------+
+| id | select_type | table    | partitions | type  | possible_keys | key            | key_len | ref                        | rows | filtered | Extra                                |
++----+-------------+----------+------------+-------+---------------+----------------+---------+----------------------------+------+----------+--------------------------------------+
+|  1 | SIMPLE      | employee | NULL       | index | NULL          | fk_emp_manager | 5       | NULL                       |   32 |   100.00 | Using index                          |
+|  1 | SIMPLE      | works_on | NULL       | ref   | PRIMARY       | PRIMARY        | 4       | company_db.employee.emp_id |    1 |   100.00 | Using where; Not exists; Using index |
++----+-------------+----------+------------+-------+---------------+----------------+---------+----------------------------+------+----------+--------------------------------------+
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+--------------------------------------+
+| id | select_type | table | partitions | type  | possible_keys | key            | key_len | ref                 | rows | filtered | Extra                                |
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+--------------------------------------+
+|  1 | SIMPLE      | e     | NULL       | index | NULL          | fk_emp_manager | 5       | NULL                |   32 |   100.00 | Using index                          |
+|  1 | SIMPLE      | w     | NULL       | ref   | PRIMARY       | PRIMARY        | 4       | company_db.e.emp_id |    1 |   100.00 | Using where; Not exists; Using index |
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+--------------------------------------+
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+--------------------------------------+
+| id | select_type | table | partitions | type  | possible_keys | key            | key_len | ref                 | rows | filtered | Extra                                |
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+--------------------------------------+
+|  1 | SIMPLE      | e     | NULL       | index | NULL          | fk_emp_manager | 5       | NULL                |   32 |   100.00 | Using index                          |
+|  1 | SIMPLE      | w     | NULL       | ref   | PRIMARY       | PRIMARY        | 4       | company_db.e.emp_id |    1 |   100.00 | Using where; Not exists; Using index |
++----+-------------+-------+------------+-------+---------------+----------------+---------+---------------------+------+----------+--------------------------------------+
+```
+
+> **Observation:** All three anti-join forms get an **identical plan**, with the `Not exists` optimization: MySQL stops looking in `works_on` once it finds a match. Because `works_on.emp_id` is `NOT NULL`, `NOT IN` is safe here. If that column allowed NULLs, MySQL could not use this plan for `NOT IN`, and the results could differ.
+
+#### E10. The plan of the 5-way join (Q14) as an operator tree.
+
+```sql
+EXPLAIN FORMAT=TREE
+SELECT e.first_name, ed.dept_name, p.proj_name, pd.dept_name
+FROM employee e
+JOIN department ed ON e.dept_id = ed.dept_id
+JOIN works_on   w  ON e.emp_id  = w.emp_id
+JOIN project    p  ON w.proj_id = p.proj_id
+JOIN department pd ON p.dept_id = pd.dept_id
+WHERE e.dept_id <> p.dept_id;
+```
+
+**Output:**
+
+```
+-> Nested loop inner join  (cost=36.2 rows=36)
+    -> Nested loop inner join  (cost=23.6 rows=36)
+        -> Nested loop inner join  (cost=9.58 rows=40)
+            -> Nested loop inner join  (cost=3.55 rows=8)
+                -> Index scan on pd using dept_name  (cost=0.75 rows=5)
+                -> Index lookup on p using fk_proj_dept (dept_id=pd.dept_id)  (cost=0.432 rows=1.6)
+            -> Covering index lookup on w using fk_wo_proj (proj_id=p.proj_id)  (cost=0.316 rows=5)
+        -> Filter: (e.dept_id <> pd.dept_id)  (cost=0.252 rows=0.9)
+            -> Single-row index lookup on e using PRIMARY (emp_id=w.emp_id)  (cost=0.252 rows=1)
+    -> Single-row index lookup on ed using PRIMARY (dept_id=e.dept_id)  (cost=0.253 rows=1)
+```
+
+> **Observation:** The tree is read **inside-out** (most-indented first). The optimizer ignored the written order and started from `department pd`, then `project`, then `works_on`, then `employee`, then `department ed`. It applied the `e.dept_id <> pd.dept_id` filter as early as possible, so the estimated row count falls from 40 to 36.
+
+#### E11. Actually runs the correlated query and reports real row counts and times.
+
+```sql
+EXPLAIN ANALYZE
+SELECT e.emp_id, e.first_name, e.salary
+FROM employee e
+WHERE e.salary > (SELECT AVG(e2.salary) FROM employee e2 WHERE e2.dept_id = e.dept_id);
+```
+
+**Output:**
+
+```
+-> Filter: (e.salary > (select #2))  (cost=3.45 rows=32) (actual time=0.0815..0.381 rows=13 loops=1)
+    -> Table scan on e  (cost=3.45 rows=32) (actual time=0.0283..0.0391 rows=32 loops=1)
+    -> Select #2 (subquery in condition; dependent)
+        -> Aggregate: avg(e2.salary)  (cost=2.03 rows=1) (actual time=0.00956..0.00959 rows=1 loops=32)
+            -> Index lookup on e2 using fk_emp_dept (dept_id=e.dept_id)  (cost=1.39 rows=6.4) (actual time=0.00635..0.00859 rows=7.06 loops=32)
+```
+
+> **Observation:** `EXPLAIN ANALYZE` actually **runs** the query. `loops=32` confirms the dependent subquery was executed **32 times**, once per employee, and `rows=13` is the real result size. *Times vary from run to run.*
+
+---
+
+## 6. Summary of the Plan Comparisons
+
+| Comparison | Plan A | Plan B | Conclusion |
+|---|---|---|---|
+| No index vs index on `city` (E1 vs E2) | `ALL`, 32 rows | `ref`, 4 rows | An index on a filtered column avoids a full table scan. |
+| Primary key lookup (E3) | `const`, 1 row | – | The fastest possible access. |
+| Range on indexed `salary` (E4) | `range` + `Using index` | – | A covering index answers the query without reading the table. |
+| 3-way join (E5) | `const` → `ref` → `eq_ref` | – | Joins on keys use index lookups. MySQL chooses the join order. |
+| Correlated subquery vs derived table (E6 vs E7) | `DEPENDENT SUBQUERY`, run 32 times | `DERIVED`, computed once | Rewriting as a join usually scales better. |
+| `IN` vs `EXISTS` vs `JOIN` (E8) | Semi-join (`FirstMatch`) | Same semi-join / `Using temporary` for DISTINCT | MySQL 8 treats `IN` and `EXISTS` the same. `JOIN + DISTINCT` does extra work. |
+| `NOT IN` vs `NOT EXISTS` vs `LEFT JOIN IS NULL` (E9) | Anti-join (`Not exists`) | Identical | Same plan when the column is `NOT NULL`. Prefer `NOT EXISTS` for NULL safety. |
+| Tree format and actual run (E10, E11) | Estimated costs | Real rows, loops and times | `EXPLAIN ANALYZE` confirms what the estimates predict. |
+
+---
+
+## Result
+
+Queries using **INNER JOIN, LEFT/RIGHT JOIN, self-join, multi-table joins, correlated subqueries, EXISTS / NOT EXISTS, and simulated INTERSECT and EXCEPT** were written and run on the Employee–Department–Project schema. The simulated set operations gave the same results as MySQL's native `INTERSECT` and `EXCEPT`.
+
+Execution plans were compared with `EXPLAIN`, `EXPLAIN FORMAT=TREE` and `EXPLAIN ANALYZE`:
+- Indexes changed full table scans (`ALL`) into `ref`, `range` and `const` lookups.
+- A correlated subquery ran once per outer row, while its derived-table rewrite ran once.
+- MySQL 8 produced the same semi-join plan for `IN` and `EXISTS`, and the same anti-join plan for `NOT IN`, `NOT EXISTS` and `LEFT JOIN … IS NULL`.
