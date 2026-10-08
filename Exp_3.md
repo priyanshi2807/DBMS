@@ -328,7 +328,7 @@ INSERT INTO works_on VALUES
 | ORDER BY | Q31, Q32, Q33, Q34, Q35 |
 | All Concepts Together | Q36 |
 
-> Queries without `ORDER BY` may return rows in a different order on your machine. SQL does not guarantee row order unless you ask for it. Q13 uses `CURDATE()`, so ages and experience depend on the day you run it.
+> Outputs were captured on MySQL 8.0.46. Queries without `ORDER BY` may return rows in a different order on your machine, because SQL does not guarantee row order unless you ask for it. Q13 uses `CURDATE()`, so ages and experience depend on the day you run it.
 
 ### 5.1 Selection (σ) – filtering rows with WHERE
 
@@ -723,7 +723,8 @@ SELECT d.dept_name,
        MAX(e.salary)           AS max_salary
 FROM department d
 JOIN employee e ON e.dept_id = d.dept_id
-GROUP BY d.dept_id, d.dept_name;
+GROUP BY d.dept_id, d.dept_name
+ORDER BY d.dept_id;
 ```
 
 **Output:**
@@ -795,7 +796,8 @@ SELECT p.proj_id, p.proj_name,
        SUM(w.hours_per_week) AS total_hours
 FROM project p
 JOIN works_on w ON w.proj_id = p.proj_id
-GROUP BY p.proj_id, p.proj_name;
+GROUP BY p.proj_id, p.proj_name
+ORDER BY p.proj_id;
 ```
 
 **Output:**
@@ -923,7 +925,8 @@ SELECT city, COUNT(*) AS employees, MAX(salary) AS highest_salary
 FROM employee
 WHERE salary >= 50000
 GROUP BY city
-HAVING COUNT(*) >= 2;
+HAVING COUNT(*) >= 2
+ORDER BY city;
 ```
 
 **Output:**
