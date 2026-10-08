@@ -1,4 +1,4 @@
-# 🧪 Experiment 6 – Stored Procedure, Triggers and Edge-Case Testing
+# Experiment 6 – Stored Procedure, Triggers and Edge-Case Testing
 
 ## Aim
 
